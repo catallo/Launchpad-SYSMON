@@ -16,7 +16,7 @@ func GridNote(row, col int) byte {
 	if row < 0 || row > 7 || col < 0 || col > 7 {
 		panic("grid coordinate out of range")
 	}
-	return byte((8-row)*10 + col + 1)
+	return byte(row*16 + col)
 }
 
 // Color calculates a visible legacy colour. red and green range from 0 to 3.

@@ -49,6 +49,7 @@ func main() {
 		clearAll(out)
 		return
 	}
+	clearAll(out) // Explicitly clear the right/top round buttons left by previous layouts.
 	defer clearAll(out)
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
@@ -108,10 +109,14 @@ func render(out drivers.Out, s monitor.Snapshot) error {
 }
 
 func clearAll(out drivers.Out) {
+	// Clear the 8×8 pad grid plus the right-hand and top control rows.
 	for row := 0; row < 8; row++ {
-		for col := 0; col < 8; col++ {
-			_ = out.Send(launchpad.Message(launchpad.GridNote(row, col), launchpad.Off))
+		for col := 0; col < 9; col++ {
+			_ = out.Send(launchpad.Message(byte(row*16+col), launchpad.Off))
 		}
+	}
+	for controller := byte(104); controller <= 111; controller++ {
+		_ = out.Send([]byte{0xB0, controller, launchpad.Off})
 	}
 	log.Print("Launchpad LEDs cleared.")
 }
