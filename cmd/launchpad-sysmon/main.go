@@ -104,7 +104,7 @@ func render(out output, s monitor.Snapshot) error {
 	if err := renderFineBar(out, func(row int) byte { return launchpad.GridNote(row, 7) }, s.Network.UploadMbit/50*100, cpuColor); err != nil {
 		return err
 	}
-	if err := renderFineBar(out, launchpad.SideButtonNote, s.CPUTemperature/85*100, cpuColor); err != nil {
+	if err := renderFineBar(out, launchpad.SideButtonNote, s.CPUTemperature/90*100, cpuColor); err != nil {
 		return err
 	}
 	return nil
