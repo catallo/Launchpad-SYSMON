@@ -84,7 +84,30 @@ func render(out output, s monitor.Snapshot) error {
 			return err
 		}
 	}
+	for row := 0; row < 8; row++ {
+		led := launchpad.Off
+		if s.SwapTotal > 0 && row >= 8-monitor.Bar(float64(s.SwapUsed)*100/float64(s.SwapTotal), 8) {
+			led = swapColor(s.SwapUsed, s.SwapTotal)
+		}
+		if _, err := out.Write(launchpad.Message(launchpad.GridNote(row, 5), led)); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+func swapColor(used, total uint64) byte {
+	if total == 0 || used == 0 {
+		return launchpad.Off
+	}
+	percent := float64(used) * 100 / float64(total)
+	if percent < 50 {
+		return launchpad.Green
+	}
+	if percent < 80 {
+		return launchpad.Amber
+	}
+	return launchpad.Red
 }
 
 func memoryColor(class monitor.MemoryClass) byte {
@@ -119,7 +142,7 @@ func runDemo(interval time.Duration) {
 		if err != nil {
 			log.Print(err)
 		} else {
-			fmt.Printf("CPU-Threads: %s\nRAM: user %.1f GiB | system %.1f GiB | cache %.1f GiB | free %.1f GiB\n", formatThreads(s.Threads), kibToGiB(s.Memory.User), kibToGiB(s.Memory.System), kibToGiB(s.Memory.Cache), kibToGiB(s.Memory.Free))
+			fmt.Printf("CPU-Threads: %s\nRAM: user %.1f GiB | system %.1f GiB | cache %.1f GiB | free %.1f GiB\nSwap: %.1f / %.1f GiB\n", formatThreads(s.Threads), kibToGiB(s.Memory.User), kibToGiB(s.Memory.System), kibToGiB(s.Memory.Cache), kibToGiB(s.Memory.Free), kibToGiB(s.SwapUsed), kibToGiB(s.SwapTotal))
 		}
 		if interval <= 0 {
 			return

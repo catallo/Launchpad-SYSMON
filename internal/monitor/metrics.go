@@ -9,8 +9,9 @@ import (
 
 // Snapshot contains the current percentage for each logical CPU thread.
 type Snapshot struct {
-	Threads []float64
-	Memory  MemorySnapshot
+	Threads             []float64
+	Memory              MemorySnapshot
+	SwapUsed, SwapTotal uint64
 }
 
 // Read samples utilization for all logical CPU threads. Shinobi has eight threads.
@@ -26,5 +27,17 @@ func Read() (Snapshot, error) {
 	if err != nil {
 		return Snapshot{}, fmt.Errorf("memory: %w", err)
 	}
-	return Snapshot{Threads: threads[:8], Memory: memory}, nil
+	swapTotal, swapFree, err := readSwap()
+	if err != nil {
+		return Snapshot{}, fmt.Errorf("swap: %w", err)
+	}
+	return Snapshot{Threads: threads[:8], Memory: memory, SwapUsed: swapTotal - swapFree, SwapTotal: swapTotal}, nil
+}
+
+func readSwap() (total, free uint64, err error) {
+	values, err := readMemInfo("/proc/meminfo")
+	if err != nil {
+		return 0, 0, err
+	}
+	return values["SwapTotal"], values["SwapFree"], nil
 }
