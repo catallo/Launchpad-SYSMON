@@ -49,3 +49,11 @@ func ThreadBlock(thread int) (column, firstRow int) {
 	}
 	return (thread/4)*2 + thread%2, ((thread % 4) / 2) * 4
 }
+
+// SideButtonNote returns the note for the right-side Scene button in a row.
+func SideButtonNote(row int) byte {
+	if row < 0 || row > 7 {
+		panic("side button row out of range")
+	}
+	return byte(row*16 + 8)
+}

@@ -102,6 +102,9 @@ func render(out output, s monitor.Snapshot) error {
 	if err := renderNetworkBar(out, 7, s.Network.UploadMbit, 50); err != nil {
 		return err
 	}
+	if err := renderTemperatureBar(out, s.CPUTemperature, 80); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -114,6 +117,21 @@ func renderNetworkBar(out output, column int, rate, fullScale float64) error {
 			led = color
 		}
 		if _, err := out.Write(launchpad.Message(launchpad.GridNote(row, column), led)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func renderTemperatureBar(out output, temperature, fullScale float64) error {
+	active := monitor.Bar(temperature/fullScale*100, 8)
+	color := monitor.Color(temperature / fullScale * 100)
+	for row := 0; row < 8; row++ {
+		led := launchpad.Off
+		if row >= 8-active {
+			led = color
+		}
+		if _, err := out.Write(launchpad.Message(launchpad.SideButtonNote(row), led)); err != nil {
 			return err
 		}
 	}
@@ -166,7 +184,7 @@ func runDemo(interval time.Duration) {
 		if err != nil {
 			log.Print(err)
 		} else {
-			fmt.Printf("CPU cores: %s\nRAM: user %.1f GiB | system %.1f GiB | cache %.1f GiB | free %.1f GiB\nSwap: %.1f / %.1f GiB | Network ↓ %.1f Mbit/s | ↑ %.1f Mbit/s\n", formatCores(s.Cores), kibToGiB(s.Memory.User), kibToGiB(s.Memory.System), kibToGiB(s.Memory.Cache), kibToGiB(s.Memory.Free), kibToGiB(s.SwapUsed), kibToGiB(s.SwapTotal), s.Network.DownloadMbit, s.Network.UploadMbit)
+			fmt.Printf("CPU cores: %s\nRAM: user %.1f GiB | system %.1f GiB | cache %.1f GiB | free %.1f GiB\nSwap: %.1f / %.1f GiB | Network ↓ %.1f Mbit/s | ↑ %.1f Mbit/s | CPU %.1f °C\n", formatCores(s.Cores), kibToGiB(s.Memory.User), kibToGiB(s.Memory.System), kibToGiB(s.Memory.Cache), kibToGiB(s.Memory.Free), kibToGiB(s.SwapUsed), kibToGiB(s.SwapTotal), s.Network.DownloadMbit, s.Network.UploadMbit, s.CPUTemperature)
 		}
 		if interval <= 0 {
 			return

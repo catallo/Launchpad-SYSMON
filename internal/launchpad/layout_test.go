@@ -22,3 +22,12 @@ func TestThreadBlock(t *testing.T) {
 		}
 	}
 }
+
+func TestSideButtonNote(t *testing.T) {
+	if got := SideButtonNote(0); got != 8 {
+		t.Fatalf("top=%d", got)
+	}
+	if got := SideButtonNote(7); got != 120 {
+		t.Fatalf("bottom=%d", got)
+	}
+}

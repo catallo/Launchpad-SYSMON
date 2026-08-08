@@ -13,6 +13,7 @@ type Snapshot struct {
 	Memory              MemorySnapshot
 	SwapUsed, SwapTotal uint64
 	Network             NetworkRate
+	CPUTemperature      float64
 }
 
 // Read samples utilization for all logical CPU threads. Shinobi has eight threads.
@@ -41,7 +42,11 @@ func ReadWithNetwork(network *NetworkSampler) (Snapshot, error) {
 	if err != nil {
 		return Snapshot{}, err
 	}
-	snapshot := Snapshot{Cores: cores, Memory: memory, SwapUsed: swapTotal - swapFree, SwapTotal: swapTotal}
+	temperature, err := ReadCPUTemperature()
+	if err != nil {
+		return Snapshot{}, fmt.Errorf("CPU temperature: %w", err)
+	}
+	snapshot := Snapshot{Cores: cores, Memory: memory, SwapUsed: swapTotal - swapFree, SwapTotal: swapTotal, CPUTemperature: temperature}
 	if network != nil {
 		rate, err := network.Sample()
 		if err != nil {
