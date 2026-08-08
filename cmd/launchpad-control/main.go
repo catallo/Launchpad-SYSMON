@@ -5,7 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"launchpad-control/internal/launchpad"
@@ -38,11 +41,18 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if err := out.Open(); err != nil {
+		log.Fatalf("open MIDI port %q: %v", out.String(), err)
+	}
 	defer out.Close()
 	if *clear {
 		clearAll(out)
 		return
 	}
+	defer clearAll(out)
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+	defer signal.Stop(signals)
 	log.Printf("Monitoring via MIDI port %q; Ctrl+C clears LEDs.", out.String())
 	for {
 		s, err := monitor.Read()
@@ -51,7 +61,11 @@ func main() {
 		} else if err := render(out, s); err != nil {
 			log.Fatal(err)
 		}
-		time.Sleep(*interval)
+		select {
+		case <-signals:
+			return
+		case <-time.After(*interval):
+		}
 	}
 }
 
