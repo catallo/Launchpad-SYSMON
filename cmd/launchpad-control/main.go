@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"launchpad-control/internal/launchpad"
-	"launchpad-control/internal/monitor"
+	"launchpad-sysmon/internal/launchpad"
+	"launchpad-sysmon/internal/monitor"
 )
 
 // This is the same raw ALSA MIDI device used by the proven launchpad-text app.
@@ -166,7 +166,7 @@ func runDemo(interval time.Duration) {
 		if err != nil {
 			log.Print(err)
 		} else {
-			fmt.Printf("CPU-Kerne: %s\nRAM: user %.1f GiB | system %.1f GiB | cache %.1f GiB | free %.1f GiB\nSwap: %.1f / %.1f GiB | Netz ↓ %.1f Mbit/s | ↑ %.1f Mbit/s\n", formatCores(s.Cores), kibToGiB(s.Memory.User), kibToGiB(s.Memory.System), kibToGiB(s.Memory.Cache), kibToGiB(s.Memory.Free), kibToGiB(s.SwapUsed), kibToGiB(s.SwapTotal), s.Network.DownloadMbit, s.Network.UploadMbit)
+			fmt.Printf("CPU cores: %s\nRAM: user %.1f GiB | system %.1f GiB | cache %.1f GiB | free %.1f GiB\nSwap: %.1f / %.1f GiB | Network ↓ %.1f Mbit/s | ↑ %.1f Mbit/s\n", formatCores(s.Cores), kibToGiB(s.Memory.User), kibToGiB(s.Memory.System), kibToGiB(s.Memory.Cache), kibToGiB(s.Memory.Free), kibToGiB(s.SwapUsed), kibToGiB(s.SwapTotal), s.Network.DownloadMbit, s.Network.UploadMbit)
 		}
 		if interval <= 0 {
 			return

@@ -1,4 +1,4 @@
-module launchpad-control
+module launchpad-sysmon
 
 go 1.26.0
 
