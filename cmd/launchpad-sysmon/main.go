@@ -52,16 +52,17 @@ func main() {
 	defer signal.Stop(signals)
 	log.Printf("Monitoring via raw MIDI device %q; Ctrl+C clears LEDs.", *device)
 	for {
-		s, err := monitor.ReadWithNetwork(network)
+		s, err := monitor.ReadWithNetwork(network, *interval)
 		if err != nil {
 			log.Printf("read metrics: %v", err)
 		} else if err := render(out, s); err != nil {
 			log.Fatal(err)
 		}
+		// CPU sampling itself occupies the configured update interval.
 		select {
 		case <-signals:
 			return
-		case <-time.After(*interval):
+		default:
 		}
 	}
 }
