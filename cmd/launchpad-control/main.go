@@ -43,12 +43,16 @@ func main() {
 	}
 	clearAll(out)
 	defer clearAll(out)
+	network, err := monitor.NewNetworkSampler("enp0s31f6")
+	if err != nil {
+		log.Fatalf("network sampler: %v", err)
+	}
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 	defer signal.Stop(signals)
 	log.Printf("Monitoring via raw MIDI device %q; Ctrl+C clears LEDs.", *device)
 	for {
-		s, err := monitor.Read()
+		s, err := monitor.ReadWithNetwork(network)
 		if err != nil {
 			log.Printf("read metrics: %v", err)
 		} else if err := render(out, s); err != nil {
@@ -90,6 +94,27 @@ func render(out output, s monitor.Snapshot) error {
 			led = swapColor(s.SwapUsed, s.SwapTotal)
 		}
 		if _, err := out.Write(launchpad.Message(launchpad.GridNote(row, 5), led)); err != nil {
+			return err
+		}
+	}
+	if err := renderNetworkBar(out, 6, s.Network.DownloadMbit, 280); err != nil {
+		return err
+	}
+	if err := renderNetworkBar(out, 7, s.Network.UploadMbit, 50); err != nil {
+		return err
+	}
+	return nil
+}
+
+func renderNetworkBar(out output, column int, rate, fullScale float64) error {
+	active := monitor.Bar(rate/fullScale*100, 8)
+	color := monitor.Color(rate / fullScale * 100)
+	for row := 0; row < 8; row++ {
+		led := launchpad.Off
+		if row >= 8-active {
+			led = color
+		}
+		if _, err := out.Write(launchpad.Message(launchpad.GridNote(row, column), led)); err != nil {
 			return err
 		}
 	}
@@ -142,7 +167,7 @@ func runDemo(interval time.Duration) {
 		if err != nil {
 			log.Print(err)
 		} else {
-			fmt.Printf("CPU-Threads: %s\nRAM: user %.1f GiB | system %.1f GiB | cache %.1f GiB | free %.1f GiB\nSwap: %.1f / %.1f GiB\n", formatThreads(s.Threads), kibToGiB(s.Memory.User), kibToGiB(s.Memory.System), kibToGiB(s.Memory.Cache), kibToGiB(s.Memory.Free), kibToGiB(s.SwapUsed), kibToGiB(s.SwapTotal))
+			fmt.Printf("CPU-Threads: %s\nRAM: user %.1f GiB | system %.1f GiB | cache %.1f GiB | free %.1f GiB\nSwap: %.1f / %.1f GiB | Netz ↓ %.1f Mbit/s | ↑ %.1f Mbit/s\n", formatThreads(s.Threads), kibToGiB(s.Memory.User), kibToGiB(s.Memory.System), kibToGiB(s.Memory.Cache), kibToGiB(s.Memory.Free), kibToGiB(s.SwapUsed), kibToGiB(s.SwapTotal), s.Network.DownloadMbit, s.Network.UploadMbit)
 		}
 		if interval <= 0 {
 			return
