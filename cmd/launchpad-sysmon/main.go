@@ -71,17 +71,17 @@ func render(out output, s monitor.Snapshot) error {
 		return fmt.Errorf("expected 8 logical CPU-thread values, got %d", len(s.Threads))
 	}
 	for thread, value := range s.Threads {
-		column, firstRow := launchpad.ThreadBlock(thread)
+		row := launchpad.ThreadRow(thread)
 		full, partial := monitor.FineBar(value, 4)
-		for offset := 0; offset < 4; offset++ {
+		for column := 0; column < 4; column++ {
 			led := launchpad.Off
-			if offset >= 4-full {
+			if column < full {
 				led = cpuColor(value, 3)
 			}
-			if partial > 0 && offset == 3-full {
+			if partial > 0 && column == full {
 				led = cpuColor(value, partial)
 			}
-			if _, err := out.Write(launchpad.Message(launchpad.GridNote(firstRow+offset, column), led)); err != nil {
+			if _, err := out.Write(launchpad.Message(launchpad.GridNote(row, column), led)); err != nil {
 				return err
 			}
 		}
