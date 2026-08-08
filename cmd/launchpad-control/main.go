@@ -1,4 +1,4 @@
-// launchpad-control displays Shinobi system status on a Novation Launchpad Mini.
+// launchpad-control displays Shinobi CPU-thread status on a Novation Launchpad Mini.
 package main
 
 import (
@@ -13,15 +13,15 @@ import (
 
 	"launchpad-control/internal/launchpad"
 	"launchpad-control/internal/monitor"
-
-	"gitlab.com/gomidi/midi/v2/drivers"
-	"gitlab.com/gomidi/midi/v2/drivers/rtmididrv"
 )
 
-const defaultPort = "Launchpad Mini"
+// This is the same raw ALSA MIDI device used by the proven launchpad-text app.
+const defaultDevice = "/dev/snd/midiC6D0"
+
+type output interface{ Write([]byte) (int, error) }
 
 func main() {
-	portName := flag.String("port", defaultPort, "part of the MIDI output port name")
+	device := flag.String("device", defaultDevice, "raw ALSA MIDI device")
 	interval := flag.Duration("interval", time.Second, "refresh period")
 	demo := flag.Bool("demo", false, "print metrics, do not send MIDI")
 	clear := flag.Bool("clear", false, "turn all LEDs off and exit")
@@ -32,29 +32,21 @@ func main() {
 		runDemo(*interval)
 		return
 	}
-	driver, err := rtmididrv.New()
+	out, err := os.OpenFile(*device, os.O_WRONLY, 0)
 	if err != nil {
-		log.Fatal(err)
-	}
-	defer driver.Close()
-	out, err := output(driver, *portName)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err := out.Open(); err != nil {
-		log.Fatalf("open MIDI port %q: %v", out.String(), err)
+		log.Fatalf("open MIDI device %q: %v", *device, err)
 	}
 	defer out.Close()
 	if *clear {
 		clearAll(out)
 		return
 	}
-	clearAll(out) // Explicitly clear the right/top round buttons left by previous layouts.
+	clearAll(out)
 	defer clearAll(out)
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 	defer signal.Stop(signals)
-	log.Printf("Monitoring via MIDI port %q; Ctrl+C clears LEDs.", out.String())
+	log.Printf("Monitoring via raw MIDI device %q; Ctrl+C clears LEDs.", *device)
 	for {
 		s, err := monitor.Read()
 		if err != nil {
@@ -70,37 +62,19 @@ func main() {
 	}
 }
 
-func output(driver *rtmididrv.Driver, wanted string) (drivers.Out, error) {
-	ports, err := driver.Outs()
-	if err != nil {
-		return nil, err
-	}
-	for _, port := range ports {
-		if strings.Contains(strings.ToLower(port.String()), strings.ToLower(wanted)) {
-			return port, nil
-		}
-	}
-	var names []string
-	for _, p := range ports {
-		names = append(names, p.String())
-	}
-	return nil, fmt.Errorf("MIDI output containing %q not found; available: %s", wanted, strings.Join(names, "; "))
-}
-
-func render(out drivers.Out, s monitor.Snapshot) error {
+func render(out output, s monitor.Snapshot) error {
 	if len(s.Threads) != 8 {
 		return fmt.Errorf("expected 8 CPU-thread values, got %d", len(s.Threads))
 	}
 	for thread, value := range s.Threads {
 		column, firstRow := launchpad.ThreadBlock(thread)
-		active := monitor.Bar(value, 4)
-		color := monitor.Color(value)
+		active, color := monitor.Bar(value, 4), monitor.Color(value)
 		for offset := 0; offset < 4; offset++ {
 			led := launchpad.Off
 			if offset >= 4-active {
 				led = color
 			}
-			if err := out.Send(launchpad.Message(launchpad.GridNote(firstRow+offset, column), led)); err != nil {
+			if _, err := out.Write(launchpad.Message(launchpad.GridNote(firstRow+offset, column), led)); err != nil {
 				return err
 			}
 		}
@@ -108,18 +82,19 @@ func render(out drivers.Out, s monitor.Snapshot) error {
 	return nil
 }
 
-func clearAll(out drivers.Out) {
-	// Clear the 8×8 pad grid plus the right-hand and top control rows.
+func clearAll(out output) {
+	// Matrix plus any outer button left on by the earlier incorrect implementation.
 	for row := 0; row < 8; row++ {
 		for col := 0; col < 9; col++ {
-			_ = out.Send(launchpad.Message(byte(row*16+col), launchpad.Off))
+			_, _ = out.Write(launchpad.Message(byte(row*16+col), launchpad.Off))
 		}
 	}
 	for controller := byte(104); controller <= 111; controller++ {
-		_ = out.Send([]byte{0xB0, controller, launchpad.Off})
+		_, _ = out.Write([]byte{0xB0, controller, launchpad.Off})
 	}
 	log.Print("Launchpad LEDs cleared.")
 }
+
 func runDemo(interval time.Duration) {
 	for {
 		s, err := monitor.Read()
@@ -134,7 +109,6 @@ func runDemo(interval time.Duration) {
 		time.Sleep(interval)
 	}
 }
-
 func formatThreads(values []float64) string {
 	parts := make([]string, len(values))
 	for i, value := range values {
