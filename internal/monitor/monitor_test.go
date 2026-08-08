@@ -31,17 +31,17 @@ func TestColor(t *testing.T) {
 
 func TestFineBar(t *testing.T) {
 	cases := []struct {
-		percent   float64
-		lit       int
-		intensity byte
+		percent float64
+		full    int
+		partial byte
 	}{
-		{0, 0, 0}, {1, 1, 1}, {8.33, 1, 1}, {8.34, 1, 2}, {16.66, 1, 2},
-		{16.67, 1, 3}, {25, 1, 3}, {25.01, 2, 1}, {100, 4, 3},
+		{0, 0, 0}, {1, 0, 1}, {8.33, 0, 1}, {8.34, 0, 2}, {16.66, 0, 2},
+		{16.67, 0, 3}, {25, 0, 3}, {25.01, 1, 1}, {100, 4, 0},
 	}
 	for _, tc := range cases {
-		lit, intensity := FineBar(tc.percent, 4)
-		if lit != tc.lit || intensity != tc.intensity {
-			t.Fatalf("%.2f%%: got (%d,%d), want (%d,%d)", tc.percent, lit, intensity, tc.lit, tc.intensity)
+		full, partial := FineBar(tc.percent, 4)
+		if full != tc.full || partial != tc.partial {
+			t.Fatalf("%.2f%%: got (%d,%d), want (%d,%d)", tc.percent, full, partial, tc.full, tc.partial)
 		}
 	}
 }

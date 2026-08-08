@@ -37,15 +37,16 @@ func Color(percent float64) byte {
 }
 
 // FineBar maps a percentage to a bar with three brightness levels per pad.
+// It returns the number of fully lit pads plus the brightness of the next pad.
 // Four pads therefore represent twelve distinct utilization steps.
-func FineBar(percent float64, pads int) (lit int, intensity byte) {
+func FineBar(percent float64, pads int) (full int, partial byte) {
 	if pads <= 0 || percent <= 0 {
 		return 0, 0
 	}
 	steps := pads * 3
 	if percent >= 100 {
-		return pads, 3
+		return pads, 0
 	}
 	step := int(math.Ceil(percent / 100 * float64(steps)))
-	return int(math.Ceil(float64(step) / 3)), byte((step-1)%3 + 1)
+	return (step - 1) / 3, byte((step-1)%3 + 1)
 }

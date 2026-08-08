@@ -72,11 +72,14 @@ func render(out output, s monitor.Snapshot) error {
 	}
 	for thread, value := range s.Threads {
 		column, firstRow := launchpad.ThreadBlock(thread)
-		active, intensity := monitor.FineBar(value, 4)
+		full, partial := monitor.FineBar(value, 4)
 		for offset := 0; offset < 4; offset++ {
 			led := launchpad.Off
-			if offset >= 4-active {
-				led = cpuColor(value, intensity)
+			if offset >= 4-full {
+				led = cpuColor(value, 3)
+			}
+			if partial > 0 && offset == 3-full {
+				led = cpuColor(value, partial)
 			}
 			if _, err := out.Write(launchpad.Message(launchpad.GridNote(firstRow+offset, column), led)); err != nil {
 				return err
