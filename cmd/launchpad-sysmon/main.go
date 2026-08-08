@@ -156,11 +156,11 @@ func swapColor(used, total uint64) byte {
 func memoryColor(class monitor.MemoryClass) byte {
 	switch class {
 	case monitor.MemoryUser:
-		return launchpad.Green
+		return launchpad.Amber
 	case monitor.MemorySystem:
 		return launchpad.Red
 	case monitor.MemoryCache:
-		return launchpad.Amber
+		return launchpad.Green
 	default:
 		return launchpad.Off
 	}
