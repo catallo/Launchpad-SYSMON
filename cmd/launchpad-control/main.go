@@ -67,18 +67,17 @@ func main() {
 }
 
 func render(out output, s monitor.Snapshot) error {
-	if len(s.Threads) != 8 {
-		return fmt.Errorf("expected 8 CPU-thread values, got %d", len(s.Threads))
+	if len(s.Cores) != 4 {
+		return fmt.Errorf("expected 4 physical-core values, got %d", len(s.Cores))
 	}
-	for thread, value := range s.Threads {
-		column, firstRow := launchpad.ThreadBlock(thread)
-		active, color := monitor.Bar(value, 4), monitor.Color(value)
-		for offset := 0; offset < 4; offset++ {
+	for column, value := range s.Cores {
+		active, color := monitor.Bar(value, 8), monitor.Color(value)
+		for row := 0; row < 8; row++ {
 			led := launchpad.Off
-			if offset >= 4-active {
+			if row >= 8-active {
 				led = color
 			}
-			if _, err := out.Write(launchpad.Message(launchpad.GridNote(firstRow+offset, column), led)); err != nil {
+			if _, err := out.Write(launchpad.Message(launchpad.GridNote(row, column), led)); err != nil {
 				return err
 			}
 		}
@@ -167,7 +166,7 @@ func runDemo(interval time.Duration) {
 		if err != nil {
 			log.Print(err)
 		} else {
-			fmt.Printf("CPU-Threads: %s\nRAM: user %.1f GiB | system %.1f GiB | cache %.1f GiB | free %.1f GiB\nSwap: %.1f / %.1f GiB | Netz ↓ %.1f Mbit/s | ↑ %.1f Mbit/s\n", formatThreads(s.Threads), kibToGiB(s.Memory.User), kibToGiB(s.Memory.System), kibToGiB(s.Memory.Cache), kibToGiB(s.Memory.Free), kibToGiB(s.SwapUsed), kibToGiB(s.SwapTotal), s.Network.DownloadMbit, s.Network.UploadMbit)
+			fmt.Printf("CPU-Kerne: %s\nRAM: user %.1f GiB | system %.1f GiB | cache %.1f GiB | free %.1f GiB\nSwap: %.1f / %.1f GiB | Netz ↓ %.1f Mbit/s | ↑ %.1f Mbit/s\n", formatCores(s.Cores), kibToGiB(s.Memory.User), kibToGiB(s.Memory.System), kibToGiB(s.Memory.Cache), kibToGiB(s.Memory.Free), kibToGiB(s.SwapUsed), kibToGiB(s.SwapTotal), s.Network.DownloadMbit, s.Network.UploadMbit)
 		}
 		if interval <= 0 {
 			return
@@ -175,10 +174,10 @@ func runDemo(interval time.Duration) {
 		time.Sleep(interval)
 	}
 }
-func formatThreads(values []float64) string {
+func formatCores(values []float64) string {
 	parts := make([]string, len(values))
 	for i, value := range values {
-		parts[i] = fmt.Sprintf("T%d %5.1f%%", i+1, value)
+		parts[i] = fmt.Sprintf("K%d %5.1f%%", i+1, value)
 	}
 	return strings.Join(parts, " | ")
 }

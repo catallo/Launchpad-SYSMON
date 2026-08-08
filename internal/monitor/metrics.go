@@ -7,9 +7,9 @@ import (
 	"github.com/shirou/gopsutil/v4/cpu"
 )
 
-// Snapshot contains the current percentage for each logical CPU thread.
+// Snapshot contains current utilization for the four physical CPU cores.
 type Snapshot struct {
-	Threads             []float64
+	Cores               []float64
 	Memory              MemorySnapshot
 	SwapUsed, SwapTotal uint64
 	Network             NetworkRate
@@ -37,7 +37,11 @@ func ReadWithNetwork(network *NetworkSampler) (Snapshot, error) {
 	if err != nil {
 		return Snapshot{}, fmt.Errorf("swap: %w", err)
 	}
-	snapshot := Snapshot{Threads: threads[:8], Memory: memory, SwapUsed: swapTotal - swapFree, SwapTotal: swapTotal}
+	cores, err := PhysicalCores(threads)
+	if err != nil {
+		return Snapshot{}, err
+	}
+	snapshot := Snapshot{Cores: cores, Memory: memory, SwapUsed: swapTotal - swapFree, SwapTotal: swapTotal}
 	if network != nil {
 		rate, err := network.Sample()
 		if err != nil {
@@ -46,6 +50,15 @@ func ReadWithNetwork(network *NetworkSampler) (Snapshot, error) {
 		snapshot.Network = rate
 	}
 	return snapshot, nil
+}
+
+// PhysicalCores averages the two logical threads of each physical core on Shinobi:
+// CPU 0+4, 1+5, 2+6, and 3+7 according to the verified lscpu topology.
+func PhysicalCores(threads []float64) ([]float64, error) {
+	if len(threads) < 8 {
+		return nil, fmt.Errorf("expected 8 logical CPU threads, got %d", len(threads))
+	}
+	return []float64{(threads[0] + threads[4]) / 2, (threads[1] + threads[5]) / 2, (threads[2] + threads[6]) / 2, (threads[3] + threads[7]) / 2}, nil
 }
 
 func readSwap() (total, free uint64, err error) {
