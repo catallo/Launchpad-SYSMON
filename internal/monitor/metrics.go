@@ -7,9 +7,9 @@ import (
 	"github.com/shirou/gopsutil/v4/cpu"
 )
 
-// Snapshot contains current utilization for the four physical CPU cores.
+// Snapshot contains current utilization for eight logical CPU threads.
 type Snapshot struct {
-	Cores               []float64
+	Threads             []float64
 	Memory              MemorySnapshot
 	SwapUsed, SwapTotal uint64
 	Network             NetworkRate
@@ -38,7 +38,7 @@ func ReadWithNetwork(network *NetworkSampler) (Snapshot, error) {
 	if err != nil {
 		return Snapshot{}, fmt.Errorf("swap: %w", err)
 	}
-	cores, err := PhysicalCores(threads)
+	logicalThreads, err := LogicalThreads(threads)
 	if err != nil {
 		return Snapshot{}, err
 	}
@@ -46,7 +46,7 @@ func ReadWithNetwork(network *NetworkSampler) (Snapshot, error) {
 	if err != nil {
 		return Snapshot{}, fmt.Errorf("CPU temperature: %w", err)
 	}
-	snapshot := Snapshot{Cores: cores, Memory: memory, SwapUsed: swapTotal - swapFree, SwapTotal: swapTotal, CPUTemperature: temperature}
+	snapshot := Snapshot{Threads: logicalThreads, Memory: memory, SwapUsed: swapTotal - swapFree, SwapTotal: swapTotal, CPUTemperature: temperature}
 	if network != nil {
 		rate, err := network.Sample()
 		if err != nil {
@@ -57,13 +57,12 @@ func ReadWithNetwork(network *NetworkSampler) (Snapshot, error) {
 	return snapshot, nil
 }
 
-// PhysicalCores averages the two logical threads of each physical core on Shinobi:
-// CPU 0+4, 1+5, 2+6, and 3+7 according to the verified lscpu topology.
-func PhysicalCores(threads []float64) ([]float64, error) {
+// LogicalThreads returns the eight logical CPU threads exposed by Shinobi.
+func LogicalThreads(threads []float64) ([]float64, error) {
 	if len(threads) < 8 {
 		return nil, fmt.Errorf("expected 8 logical CPU threads, got %d", len(threads))
 	}
-	return []float64{(threads[0] + threads[4]) / 2, (threads[1] + threads[5]) / 2, (threads[2] + threads[6]) / 2, (threads[3] + threads[7]) / 2}, nil
+	return append([]float64(nil), threads[:8]...), nil
 }
 
 func readSwap() (total, free uint64, err error) {
