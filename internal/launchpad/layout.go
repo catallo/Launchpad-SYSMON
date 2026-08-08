@@ -57,11 +57,3 @@ func SideButtonNote(row int) byte {
 	}
 	return byte(row*16 + 8)
 }
-
-// ThreadRow returns the horizontal matrix row for logical CPU thread 0–7.
-func ThreadRow(thread int) int {
-	if thread < 0 || thread > 7 {
-		panic("CPU thread out of range")
-	}
-	return thread
-}

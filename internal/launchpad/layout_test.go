@@ -31,12 +31,3 @@ func TestSideButtonNote(t *testing.T) {
 		t.Fatalf("bottom=%d", got)
 	}
 }
-
-func TestThreadRow(t *testing.T) {
-	if got := ThreadRow(0); got != 0 {
-		t.Fatalf("first row=%d", got)
-	}
-	if got := ThreadRow(7); got != 7 {
-		t.Fatalf("last row=%d", got)
-	}
-}
