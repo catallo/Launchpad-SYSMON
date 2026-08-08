@@ -79,7 +79,25 @@ func render(out output, s monitor.Snapshot) error {
 			}
 		}
 	}
+	for row, class := range monitor.MemoryCells(s.Memory, 8) {
+		if _, err := out.Write(launchpad.Message(launchpad.GridNote(7-row, 4), memoryColor(class))); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+func memoryColor(class monitor.MemoryClass) byte {
+	switch class {
+	case monitor.MemoryUser:
+		return launchpad.Green
+	case monitor.MemorySystem:
+		return launchpad.Red
+	case monitor.MemoryCache:
+		return launchpad.Amber
+	default:
+		return launchpad.Off
+	}
 }
 
 func clearAll(out output) {
@@ -101,7 +119,7 @@ func runDemo(interval time.Duration) {
 		if err != nil {
 			log.Print(err)
 		} else {
-			fmt.Printf("CPU-Threads: %s\n", formatThreads(s.Threads))
+			fmt.Printf("CPU-Threads: %s\nRAM: user %.1f GiB | system %.1f GiB | cache %.1f GiB | free %.1f GiB\n", formatThreads(s.Threads), kibToGiB(s.Memory.User), kibToGiB(s.Memory.System), kibToGiB(s.Memory.Cache), kibToGiB(s.Memory.Free))
 		}
 		if interval <= 0 {
 			return
@@ -116,3 +134,5 @@ func formatThreads(values []float64) string {
 	}
 	return strings.Join(parts, " | ")
 }
+
+func kibToGiB(value uint64) float64 { return float64(value) / 1024 / 1024 }

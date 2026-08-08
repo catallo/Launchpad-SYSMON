@@ -10,6 +10,7 @@ import (
 // Snapshot contains the current percentage for each logical CPU thread.
 type Snapshot struct {
 	Threads []float64
+	Memory  MemorySnapshot
 }
 
 // Read samples utilization for all logical CPU threads. Shinobi has eight threads.
@@ -21,5 +22,9 @@ func Read() (Snapshot, error) {
 	if len(threads) < 8 {
 		return Snapshot{}, fmt.Errorf("expected at least 8 logical CPU threads, got %d", len(threads))
 	}
-	return Snapshot{Threads: threads[:8]}, nil
+	memory, err := ReadMemory()
+	if err != nil {
+		return Snapshot{}, fmt.Errorf("memory: %w", err)
+	}
+	return Snapshot{Threads: threads[:8], Memory: memory}, nil
 }
