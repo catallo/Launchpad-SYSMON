@@ -103,7 +103,7 @@ func render(out output, s monitor.Snapshot) error {
 	if err := renderNetworkBar(out, 7, s.Network.UploadMbit, 50); err != nil {
 		return err
 	}
-	if err := renderTemperatureBar(out, s.CPUTemperature, 80); err != nil {
+	if err := renderTemperatureBar(out, s.CPUTemperature, 90); err != nil {
 		return err
 	}
 	return nil
