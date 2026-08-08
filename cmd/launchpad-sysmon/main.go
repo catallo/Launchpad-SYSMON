@@ -72,11 +72,11 @@ func render(out output, s monitor.Snapshot) error {
 	}
 	for thread, value := range s.Threads {
 		column, firstRow := launchpad.ThreadBlock(thread)
-		active, color := monitor.Bar(value, 4), monitor.Color(value)
+		active, intensity := monitor.FineBar(value, 4)
 		for offset := 0; offset < 4; offset++ {
 			led := launchpad.Off
 			if offset >= 4-active {
-				led = color
+				led = cpuColor(value, intensity)
 			}
 			if _, err := out.Write(launchpad.Message(launchpad.GridNote(firstRow+offset, column), led)); err != nil {
 				return err
@@ -107,6 +107,20 @@ func render(out output, s monitor.Snapshot) error {
 		return err
 	}
 	return nil
+}
+
+func cpuColor(percent float64, intensity byte) byte {
+	// Normal legacy flags (0x0C); red and green each have three intensity levels.
+	var red, green byte
+	switch {
+	case percent < 75:
+		green = intensity
+	case percent < 90:
+		red, green = intensity, intensity
+	default:
+		red = intensity
+	}
+	return launchpad.Color(red, green)
 }
 
 func renderNetworkBar(out output, column int, rate, fullScale float64) error {

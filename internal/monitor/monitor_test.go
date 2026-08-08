@@ -28,3 +28,20 @@ func TestColor(t *testing.T) {
 		t.Fatalf("high color = %d", got)
 	}
 }
+
+func TestFineBar(t *testing.T) {
+	cases := []struct {
+		percent   float64
+		lit       int
+		intensity byte
+	}{
+		{0, 0, 0}, {1, 1, 1}, {8.33, 1, 1}, {8.34, 1, 2}, {16.66, 1, 2},
+		{16.67, 1, 3}, {25, 1, 3}, {25.01, 2, 1}, {100, 4, 3},
+	}
+	for _, tc := range cases {
+		lit, intensity := FineBar(tc.percent, 4)
+		if lit != tc.lit || intensity != tc.intensity {
+			t.Fatalf("%.2f%%: got (%d,%d), want (%d,%d)", tc.percent, lit, intensity, tc.lit, tc.intensity)
+		}
+	}
+}
