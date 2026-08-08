@@ -16,7 +16,7 @@ Green, amber, and red indicate low, medium, and high utilization. The monitor us
 
 ```bash
 go test ./...
-go build -o bin/launchpad-sysmon ./cmd/launchpad-control
+go build -o bin/launchpad-sysmon ./cmd/launchpad-sysmon
 ```
 
 ## Run
