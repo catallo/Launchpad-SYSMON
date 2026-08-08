@@ -11,14 +11,14 @@ func TestGridNote(t *testing.T) {
 	}
 }
 
-func TestColor(t *testing.T) {
-	if got := Color(3, 0); got != Red {
-		t.Fatalf("red=%d", got)
+func TestThreadBlock(t *testing.T) {
+	cases := []struct{ thread, col, row int }{
+		{0, 0, 0}, {1, 1, 0}, {2, 0, 4}, {3, 1, 4}, {4, 2, 0}, {7, 3, 4},
 	}
-	if got := Color(0, 3); got != Green {
-		t.Fatalf("green=%d", got)
-	}
-	if got := Color(3, 3); got != Amber {
-		t.Fatalf("amber=%d", got)
+	for _, tc := range cases {
+		col, row := ThreadBlock(tc.thread)
+		if col != tc.col || row != tc.row {
+			t.Fatalf("thread %d: got (%d,%d), want (%d,%d)", tc.thread, col, row, tc.col, tc.row)
+		}
 	}
 }

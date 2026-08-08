@@ -87,16 +87,19 @@ func output(driver *rtmididrv.Driver, wanted string) (drivers.Out, error) {
 }
 
 func render(out drivers.Out, s monitor.Snapshot) error {
-	values := []float64{s.CPU, s.RAM, s.RootDisk, s.GPU, s.VRAM}
-	for col, value := range values {
-		active := monitor.Bar(value, 8)
+	if len(s.Threads) != 8 {
+		return fmt.Errorf("expected 8 CPU-thread values, got %d", len(s.Threads))
+	}
+	for thread, value := range s.Threads {
+		column, firstRow := launchpad.ThreadBlock(thread)
+		active := monitor.Bar(value, 4)
 		color := monitor.Color(value)
-		for row := 0; row < 8; row++ {
-			c := launchpad.Off
-			if row >= 8-active {
-				c = color
+		for offset := 0; offset < 4; offset++ {
+			led := launchpad.Off
+			if offset >= 4-active {
+				led = color
 			}
-			if err := out.Send(launchpad.Message(launchpad.GridNote(row, col), c)); err != nil {
+			if err := out.Send(launchpad.Message(launchpad.GridNote(firstRow+offset, column), led)); err != nil {
 				return err
 			}
 		}
@@ -118,11 +121,19 @@ func runDemo(interval time.Duration) {
 		if err != nil {
 			log.Print(err)
 		} else {
-			fmt.Printf("CPU %5.1f%% | RAM %5.1f%% | Disk %5.1f%% | GPU %5.1f%% | VRAM %5.1f%%\n", s.CPU, s.RAM, s.RootDisk, s.GPU, s.VRAM)
+			fmt.Printf("CPU-Threads: %s\n", formatThreads(s.Threads))
 		}
 		if interval <= 0 {
 			return
 		}
 		time.Sleep(interval)
 	}
+}
+
+func formatThreads(values []float64) string {
+	parts := make([]string, len(values))
+	for i, value := range values {
+		parts[i] = fmt.Sprintf("T%d %5.1f%%", i+1, value)
+	}
+	return strings.Join(parts, " | ")
 }

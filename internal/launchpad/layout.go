@@ -39,3 +39,13 @@ func ValidatePort(name string) error {
 	}
 	return nil
 }
+
+// ThreadBlock returns the column and first row for logical CPU thread 0–7.
+// Threads 0–3 use columns 0–1; threads 4–7 use columns 2–3.
+// Within each pair, the first two threads occupy rows 0–3 and the next two rows 4–7.
+func ThreadBlock(thread int) (column, firstRow int) {
+	if thread < 0 || thread > 7 {
+		panic("CPU thread out of range")
+	}
+	return (thread/4)*2 + thread%2, ((thread % 4) / 2) * 4
+}
