@@ -3,6 +3,7 @@ package monitor
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -112,6 +113,44 @@ func MemoryCells(s MemorySnapshot, cells int) []MemoryClass {
 	for i, class := range classes {
 		for n := 0; n < counts[i]; n++ {
 			result = append(result, class)
+		}
+	}
+	return result
+}
+
+// MemoryCell is one three-level LED slot in the RAM bar.
+type MemoryCell struct {
+	Class     MemoryClass
+	Intensity byte
+}
+
+// FineMemoryCells returns exactly pads RAM cells. Each category's final cell
+// reflects its fractional share at one of three brightness levels.
+func FineMemoryCells(s MemorySnapshot, pads int) []MemoryCell {
+	classes := MemoryCells(s, pads)
+	if len(classes) == 0 {
+		return nil
+	}
+	amounts := map[MemoryClass]uint64{
+		MemoryUser: s.User, MemorySystem: s.System, MemoryCache: s.Cache, MemoryFree: s.Free,
+	}
+	last := make(map[MemoryClass]int)
+	for i, class := range classes {
+		last[class] = i
+	}
+	result := make([]MemoryCell, len(classes))
+	for i, class := range classes {
+		result[i] = MemoryCell{Class: class, Intensity: 3}
+	}
+	for class, index := range last {
+		if class == MemoryFree {
+			result[index].Intensity = 0
+			continue
+		}
+		exact := float64(amounts[class]) / float64(s.Total) * float64(pads)
+		fraction := exact - math.Floor(exact)
+		if fraction > 0 {
+			result[index].Intensity = byte(math.Ceil(fraction * 3))
 		}
 	}
 	return result

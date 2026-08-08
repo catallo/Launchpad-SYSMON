@@ -21,3 +21,13 @@ func TestMemoryCellsEmpty(t *testing.T) {
 		t.Fatalf("got %#v", got)
 	}
 }
+
+func TestFineMemoryCells(t *testing.T) {
+	cells := FineMemoryCells(MemorySnapshot{Total: 100, User: 48, System: 4, Cache: 36, Free: 12}, 8)
+	if len(cells) != 8 {
+		t.Fatalf("got %d cells", len(cells))
+	}
+	if cells[0].Class != MemoryUser || cells[0].Intensity != 3 {
+		t.Fatalf("first=%+v", cells[0])
+	}
+}

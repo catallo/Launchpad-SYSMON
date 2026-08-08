@@ -86,27 +86,25 @@ func render(out output, s monitor.Snapshot) error {
 			}
 		}
 	}
-	for row, class := range monitor.MemoryCells(s.Memory, 8) {
-		if _, err := out.Write(launchpad.Message(launchpad.GridNote(7-row, 4), memoryColor(class))); err != nil {
+	for row, cell := range monitor.FineMemoryCells(s.Memory, 8) {
+		if _, err := out.Write(launchpad.Message(launchpad.GridNote(7-row, 4), memoryColor(cell.Class, cell.Intensity))); err != nil {
 			return err
 		}
 	}
-	for row := 0; row < 8; row++ {
-		led := launchpad.Off
-		if s.SwapTotal > 0 && row >= 8-monitor.Bar(float64(s.SwapUsed)*100/float64(s.SwapTotal), 8) {
-			led = swapColor(s.SwapUsed, s.SwapTotal)
-		}
-		if _, err := out.Write(launchpad.Message(launchpad.GridNote(row, 5), led)); err != nil {
-			return err
-		}
+	swapPercent := 0.0
+	if s.SwapTotal > 0 {
+		swapPercent = float64(s.SwapUsed) * 100 / float64(s.SwapTotal)
 	}
-	if err := renderNetworkBar(out, 6, s.Network.DownloadMbit, 280); err != nil {
+	if err := renderFineBar(out, func(row int) byte { return launchpad.GridNote(row, 5) }, swapPercent, swapColor); err != nil {
 		return err
 	}
-	if err := renderNetworkBar(out, 7, s.Network.UploadMbit, 50); err != nil {
+	if err := renderFineBar(out, func(row int) byte { return launchpad.GridNote(row, 6) }, s.Network.DownloadMbit/280*100, cpuColor); err != nil {
 		return err
 	}
-	if err := renderTemperatureBar(out, s.CPUTemperature, 85); err != nil {
+	if err := renderFineBar(out, func(row int) byte { return launchpad.GridNote(row, 7) }, s.Network.UploadMbit/50*100, cpuColor); err != nil {
+		return err
+	}
+	if err := renderFineBar(out, launchpad.SideButtonNote, s.CPUTemperature/85*100, cpuColor); err != nil {
 		return err
 	}
 	return nil
@@ -126,58 +124,44 @@ func cpuColor(percent float64, intensity byte) byte {
 	return launchpad.Color(red, green)
 }
 
-func renderNetworkBar(out output, column int, rate, fullScale float64) error {
-	active := monitor.Bar(rate/fullScale*100, 8)
-	color := monitor.Color(rate / fullScale * 100)
+func renderFineBar(out output, note func(int) byte, percent float64, color func(float64, byte) byte) error {
+	full, partial := monitor.FineBar(percent, 8)
 	for row := 0; row < 8; row++ {
 		led := launchpad.Off
-		if row >= 8-active {
-			led = color
+		if row >= 8-full {
+			led = color(percent, 3)
 		}
-		if _, err := out.Write(launchpad.Message(launchpad.GridNote(row, column), led)); err != nil {
+		if partial > 0 && row == 7-full {
+			led = color(percent, partial)
+		}
+		if _, err := out.Write(launchpad.Message(note(row), led)); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func renderTemperatureBar(out output, temperature, fullScale float64) error {
-	active := monitor.Bar(temperature/fullScale*100, 8)
-	color := monitor.Color(temperature / fullScale * 100)
-	for row := 0; row < 8; row++ {
-		led := launchpad.Off
-		if row >= 8-active {
-			led = color
-		}
-		if _, err := out.Write(launchpad.Message(launchpad.SideButtonNote(row), led)); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func swapColor(used, total uint64) byte {
-	if total == 0 || used == 0 {
+func swapColor(percent float64, intensity byte) byte {
+	switch {
+	case percent <= 0:
 		return launchpad.Off
+	case percent < 50:
+		return launchpad.Color(0, intensity)
+	case percent < 80:
+		return launchpad.Color(intensity, intensity)
+	default:
+		return launchpad.Color(intensity, 0)
 	}
-	percent := float64(used) * 100 / float64(total)
-	if percent < 50 {
-		return launchpad.Green
-	}
-	if percent < 80 {
-		return launchpad.Amber
-	}
-	return launchpad.Red
 }
 
-func memoryColor(class monitor.MemoryClass) byte {
+func memoryColor(class monitor.MemoryClass, intensity byte) byte {
 	switch class {
 	case monitor.MemoryUser:
-		return launchpad.Amber
+		return launchpad.Color(intensity, intensity)
 	case monitor.MemorySystem:
-		return launchpad.Red
+		return launchpad.Color(intensity, 0)
 	case monitor.MemoryCache:
-		return launchpad.Green
+		return launchpad.Color(0, intensity)
 	default:
 		return launchpad.Off
 	}
