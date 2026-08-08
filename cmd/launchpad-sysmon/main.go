@@ -104,7 +104,7 @@ func render(out output, s monitor.Snapshot) error {
 	if err := renderFineBar(out, func(row int) byte { return launchpad.GridNote(row, 7) }, s.Network.UploadMbit/50*100, cpuColor); err != nil {
 		return err
 	}
-	if err := renderFineBar(out, launchpad.SideButtonNote, s.CPUTemperature/90*100, cpuColor); err != nil {
+	if err := renderTemperatureButtons(out, s.CPUTemperature, 90); err != nil {
 		return err
 	}
 	return nil
@@ -122,6 +122,21 @@ func cpuColor(percent float64, intensity byte) byte {
 		red = intensity
 	}
 	return launchpad.Color(red, green)
+}
+
+func renderTemperatureButtons(out output, temperature, fullScale float64) error {
+	active := monitor.Bar(temperature/fullScale*100, 8)
+	color := cpuColor(temperature/fullScale*100, 3)
+	for row := 0; row < 8; row++ {
+		led := launchpad.Off
+		if row >= 8-active {
+			led = color
+		}
+		if _, err := out.Write(launchpad.Message(launchpad.SideButtonNote(row), led)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func renderFineBar(out output, note func(int) byte, percent float64, color func(float64, byte) byte) error {
